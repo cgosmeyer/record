@@ -1,0 +1,1 @@
+Must change the nature of Python functions to be self-recording of all parameter values and nature of modules to be self-recording of all imported version numbers and paths. 
