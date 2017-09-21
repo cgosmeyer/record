@@ -4,6 +4,7 @@ module that this function is called from.
 """
 
 import os
+import subprocess
 
 def strip_imports(script):
     """ Strip out all import statements, including `import as`
@@ -13,9 +14,9 @@ def strip_imports(script):
     with open(script, 'r') as f:
         lines = f.readlines()
 
-    # Retain only import lines, but removing commented out imports and relative imports.
+    # Retain only import lines, but removing commented out imports, relative imports, and the function itself.
     # In addition, remove all leading space.
-    stripped_lines = [line.lstrip(' ') for line in lines if 'import' in line and '#' not in line and 'from .' not in line]
+    stripped_lines = [line.lstrip(' ') for line in lines if 'import' in line and '#' not in line and 'from .' not in line and 'meta_record_imports' not in line]
 
     # Change all 'from ... import' statements into 'import' statements
     # so to capture their versions, paths
@@ -37,23 +38,27 @@ def strip_imports(script):
     return stripped_lines
 
 
-def meta_record_imports(path_running_script, path_logs):
+def meta_record_imports(path_running_script, path_logs=''):
     """
 
     Resources
     ---------
     https://stackoverflow.com/questions/5137497/find-current-directory-and-files-directory
     """
+    # Make sure no pre-existing temp_import.py
+    if os.path.isfile("temp_import.py"):
+        os.remove("temp_import.py")
+
     # Get the path to the module of this executing function.
     execute_path = os.path.dirname(os.path.realpath(__file__))
 
     # Read the function return_import_metadata
-    with open(os.path.join(execute_path, "return_import_metedata.py"), 'r') as f:
+    with open(os.path.join(execute_path, "return_import_metadata.py"), 'r') as f:
         return_import_metadata = f.readlines()
 
     # Read the imports from the running script.
     # Returns list of import lines.
-    stripped_lines = strip_imports()
+    stripped_lines = strip_imports(path_running_script)
 
     # Create a new temp file at the location of the running script
     # And write all the imports
@@ -64,7 +69,7 @@ def meta_record_imports(path_running_script, path_logs):
         # Write the return_imports function into the new file
         # (it needs to be in the same location as the imports to work,
         #   so importing itself is not an option)
-        for line in return_meta_data:
+        for line in return_import_metadata:
             temp.write(line)
 
         # call the return_imports function
@@ -76,7 +81,10 @@ def meta_record_imports(path_running_script, path_logs):
     # Write the output to a log file, at the path indicated in `path_logs`
     # by default this could be cwd? 
 
-    # remove the temp file
-    #os.remove("temp_import.py")
+    # Run the temp file.
+    subprocess.call(["python", "temp_import.py"])  #hahah
+
+    # Remove the temp file
+    os.remove("temp_import.py")
 
 
