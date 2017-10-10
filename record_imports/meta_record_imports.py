@@ -9,6 +9,17 @@ import subprocess
 def strip_imports(script):
     """ Strip out all import statements, including `import as`
     and `from ... import`
+
+    This is ok for a first pass. But will fail if 'import' happens
+    to be part of a name of a function or variable.
+    Or just build a smarter try-except in return_import_metadata
+    so anything not a real import will be ignored.
+
+    What to do with local imports? How will know something is local?
+    Scan the package first? (list 'local' for 'built-in')
+
+    Also consider another function that will scan through the
+    imports to record their imports. Make that an option?
     """
     # Read the script file
     with open(script, 'r') as f:
@@ -16,7 +27,11 @@ def strip_imports(script):
 
     # Retain only import lines, but removing commented out imports, relative imports, and the function itself.
     # In addition, remove all leading space.
-    stripped_lines = [line.lstrip(' ') for line in lines if 'import' in line and '#' not in line and 'from .' not in line and 'meta_record_imports' not in line]
+    stripped_lines = [line.lstrip(' ') for line in lines if 'import' in line \
+        and '#' not in line \
+        and 'from .' not in line \
+        and 'meta_record_imports' not in line \
+        and '__' not in line]
 
     # Change all 'from ... import' statements into 'import' statements
     # so to capture their versions, paths
@@ -38,8 +53,13 @@ def strip_imports(script):
     return stripped_lines
 
 
-def meta_record_imports(path_running_script, path_logs=''):
+def meta_record_imports(path_running_script, print_or_log='print', path_logs=''):
     """
+
+    Parameters
+    ----------
+    path_running_script : str
+        Usually just '__file__'.
 
     Resources
     ---------
@@ -74,15 +94,32 @@ def meta_record_imports(path_running_script, path_logs=''):
 
         # call the return_imports function
         temp.write("module_names, module_paths, module_versions = return_import_metadata()\n")
-        temp.write("print(module_names)\n")
-        temp.write("print(module_paths)\n")
-        temp.write("print(module_versions)\n")
+
+        if print_or_log == 'print':
+            temp.write("print('EXECUTING: {}'.format('" + path_running_script + "'))\n")
+            temp.write("print(' ')\n")
+            temp.write("print('IMPORTING:')\n")
+            temp.write("for n, p, v in zip(module_names, module_paths, module_versions):\n")
+            temp.write("    print('MODULE NAME: {}'.format(n))\n")
+            temp.write("    print('MODULE PATH: {}'.format(p))\n")
+            temp.write("    print('MODULE VERS: {}'.format(v))\n")
+            temp.write("    print(' ')\n")
+        elif print_or_log == 'log':
+            temp.write("import logging\n")
+            temp.write("logging.info('EXECUTING: {}'.format('" + path_running_script + "'))\n")
+            temp.write("logging.info(' ')\n")
+            temp.write("logging.info('IMPORTING:')\n")
+            temp.write("for n, p, v in zip(module_names, module_paths, module_versions):\n")
+            temp.write("    logging.info('MODULE NAME: {}'.format(n))\n")
+            temp.write("    logging.info('MODULE PATH: {}'.format(p))\n")
+            temp.write("    logging.info('MODULE VERS: {}'.format(v))\n")
+            temp.write("    logging.info(' ')\n")     
 
     # Write the output to a log file, at the path indicated in `path_logs`
     # by default this could be cwd? 
 
     # Run the temp file.
-    subprocess.call(["python", "temp_import.py"])  #hahah
+    subprocess.call(["python", "temp_import.py"])
 
     # Remove the temp file
     os.remove("temp_import.py")

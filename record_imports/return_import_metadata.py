@@ -1,5 +1,9 @@
 import sys
 
+
+# try this subprocess.call(['conda', 'list'])
+
+
 def return_import_metadata():
     """
 
@@ -25,9 +29,12 @@ def return_import_metadata():
     for module in module_classes:
         try:
             module_paths.append(module.__path__[0])
-            module_versions.append(module.__version__)
         except:
             module_paths.append('built-in')
+            
+        try:
+            module_versions.append(module.__version__)
+        except:
             module_versions.append(None)
 
     return module_names, module_paths, module_versions 
